@@ -58,29 +58,29 @@ class TelnetConnection(object):
         self.password = ''
 
     def set_prompt(self, prompt):
-        self.prompt = prompt
+        self.prompt = prompt.encode('ascii')
 
     def set_login(self, account, password):
-        self.account = account
-        self.password = password
+        self.account = account.encode('ascii')
+        self.password = password.encode('ascii')
 
     def login(self, host, user, password):
         self.tn.open(host)
 
         self.tn.read_until(self.account)
-        self.tn.write(user + '\n')
+        self.tn.write(user.encode('ascii') + b'\n')
 
         self.tn.read_until(self.password)
-        self.tn.write(password + '\n')
+        self.tn.write(password.encode('ascii') + b'\n')
 
         self.tn.read_until(self.prompt)
 
     def read_command(self, command):
-        self.tn.write("%s\n" % command)
-        return self.tn.read_until("> ")
+        self.tn.write(command.encode('ascii') + b'\n')
+        return self.tn.read_until(self.prompt)
 
     def exit(self):
-        self.tn.write("exit\n")
+        self.tn.write(b"exit\n")
         self.tn.read_all()
         self.tn.close()
 
@@ -139,8 +139,8 @@ class BroadBandModem(object):
         self._stats = {}
 
     def get_login(self):
-        self._host = raw_input("Modem address: ")
-        self._user = raw_input("Account: ")
+        self._host = input("Modem address: ")
+        self._user = input("Account: ")
         self._password = getpass.getpass()
 
     def __getitem__(self, stat):
@@ -150,21 +150,21 @@ class BroadBandModem(object):
 class Vigor130Modem(BroadBandModem):
 
     STATUS_STATS = {
-        ConnectionStats.UPTIME:        r"System Uptime:(\d+):(\d+)"
+        ConnectionStats.UPTIME:        rb"System Uptime:(\d+):(\d+)"
     }
     ADSL_STATS = {
-        ConnectionStats.DS_ACTUAL:     r"DS Actual Rate +: +(\d+)",
-        ConnectionStats.DS_ATTAINABLE: r"DS Attainable Rate +: +(\d+)",
-        ConnectionStats.US_ACTUAL:     r"US Actual Rate +: +(\d+)",
-        ConnectionStats.US_ATTAINABLE: r"US Attainable Rate +: +(\d+)",
-        ConnectionStats.NE_SNR_MARGIN: r"Cur SNR Margin +: +(\d+)",
-        ConnectionStats.NE_CRC_COUNT:  r"NE CRC Count +: +(\d+)",
-        ConnectionStats.NE_ES_COUNT:   r"NE ES Count +: +(\d+)",
-        ConnectionStats.FE_SNR_MARGIN: r"Far SNR Margin +: +(\d+)",
-        ConnectionStats.FE_CRC_COUNT:  r"FE CRC Count +: +(\d+)",
-        ConnectionStats.FE_ES_COUNT:   r"FE  ES Count +: +(\d+)",
-        ConnectionStats.RESET_TIMES:   r"Xdsl Reset Times +: +(\d+)",
-        ConnectionStats.LINK_TIMES:    r"Xdsl Link  Times +: +(\d+)"
+        ConnectionStats.DS_ACTUAL:     rb"DS Actual Rate +: +(\d+)",
+        ConnectionStats.DS_ATTAINABLE: rb"DS Attainable Rate +: +(\d+)",
+        ConnectionStats.US_ACTUAL:     rb"US Actual Rate +: +(\d+)",
+        ConnectionStats.US_ATTAINABLE: rb"US Attainable Rate +: +(\d+)",
+        ConnectionStats.NE_SNR_MARGIN: rb"Cur SNR Margin +: +(\d+)",
+        ConnectionStats.NE_CRC_COUNT:  rb"NE CRC Count +: +(\d+)",
+        ConnectionStats.NE_ES_COUNT:   rb"NE ES Count +: +(\d+)",
+        ConnectionStats.FE_SNR_MARGIN: rb"Far SNR Margin +: +(\d+)",
+        ConnectionStats.FE_CRC_COUNT:  rb"FE CRC Count +: +(\d+)",
+        ConnectionStats.FE_ES_COUNT:   rb"FE  ES Count +: +(\d+)",
+        ConnectionStats.RESET_TIMES:   rb"Xdsl Reset Times +: +(\d+)",
+        ConnectionStats.LINK_TIMES:    rb"Xdsl Link  Times +: +(\d+)"
     }
 
     def __init__(self):
@@ -185,7 +185,7 @@ class Vigor130Modem(BroadBandModem):
                     HoursDelta(hours=int(match.group(1)),
                                minutes=int(match.group(2)))
             else:
-                print >> sys.stderr, "Did not find status: %s" % stat
+                print("Did not find status: %s" % stat, file=sys.stderr)
 
         adsl = self._connection.read_command("show adsl")
         for stat, pattern in Vigor130Modem.ADSL_STATS.items():
@@ -193,7 +193,7 @@ class Vigor130Modem(BroadBandModem):
             if match:
                 self._stats[stat] = int(match.group(1))
             else:
-                print >> sys.stderr, "Did not find status: %s" % stat
+                print("Did not find status: %s" % stat, file=sys.stderr)
 
         self._connection.exit()
 
@@ -250,7 +250,7 @@ duration = 24
 
 for option, value in options:
     if option == '-h':
-        print '%s\n%s' % (__description__, __doc__)
+        print('%s\n%s' % (__description__, __doc__))
         sys.exit()
 
     elif option == '-d':
@@ -283,7 +283,7 @@ if len(pargs) > 0:
     usage("Unknown arguments given: - %s", " ".join(pargs))
 
 if outfile is not sys.stdout:
-    outfile = open(outfile, "wb")
+    outfile = open(outfile, "w")
 
 endtime = datetime.datetime.now() + datetime.timedelta(hours=duration)
 
