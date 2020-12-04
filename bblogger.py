@@ -213,7 +213,7 @@ class StatsLogger(object):
         return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
     def log(self, data):
-        self._output.write("Timestamp: %s" % self.log_time())
+        self._output.write("Timestamp: %s\n" % self.log_time())
         for field, data in zip(self._fields, self._str_data(data)):
             self._output.write("%s: %s\n" % (field, data))
         self._output.flush()
