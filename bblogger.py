@@ -2,12 +2,11 @@
 
 """Broadband modem stats logger.
 
-usage: bblogger [-h] [-d hours] [-f dump|csv] [-o file] [-t minutes]
+usage: bblogger [-h] [-d hours] [-f dump|csv] [-t minutes]
 
 -h  Display this help.
 -d  How long to log modem stats (default 24)
 -f  Log output format (default dump)
--o  File for log output (default is stdout)
 -t  Time between checks in minutes (default 15)
 """
 
@@ -234,7 +233,7 @@ class CSVStatsLogger(StatsLogger):
 
 
 try:
-    options, pargs = getopt.getopt(sys.argv[1:], "hd:f:o:t:")
+    options, pargs = getopt.getopt(sys.argv[1:], "hd:f:t:")
 except getopt.GetoptError as err:
     usage(str(err))
 
@@ -266,11 +265,6 @@ for option, value in options:
             usage("Log format is not recognised.")
         fformat = value
 
-    elif option == '-o':
-        if os.path.exists(value):
-            usage("Log file already exists, use a new name.")
-        outfile = value
-
     elif option == '-t':
         try:
             sleeptime = int(value)
@@ -281,9 +275,6 @@ for option, value in options:
 
 if len(pargs) > 0:
     usage("Unknown arguments given: - %s", " ".join(pargs))
-
-if outfile is not sys.stdout:
-    outfile = open(outfile, "w")
 
 endtime = datetime.datetime.now() + datetime.timedelta(hours=duration)
 
