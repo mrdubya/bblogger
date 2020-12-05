@@ -2,11 +2,11 @@
 
 """Broadband modem stats logger.
 
-usage: bblogger [-h] [-d hours] [-f dump|csv] [-t minutes]
+usage: bblogger [-h] [-d hours] [-o dump|csv] [-t minutes]
 
 -h  Display this help.
 -d  How long to log modem stats (default 24)
--f  Log output format (default dump)
+-o  Output format (default dump)
 -t  Time between checks in minutes (default 15)
 """
 
@@ -233,7 +233,7 @@ class CSVStatsLogger(StatsLogger):
 
 
 try:
-    options, pargs = getopt.getopt(sys.argv[1:], "hd:f:t:")
+    options, pargs = getopt.getopt(sys.argv[1:], "hd:o:t:")
 except getopt.GetoptError as err:
     usage(str(err))
 
@@ -260,7 +260,7 @@ for option, value in options:
         except ValueError:
             usage("Log duration must be integer value greater than 0.")
 
-    elif option == '-f':
+    elif option == '-o':
         if value not in FFORMATS:
             usage("Log format is not recognised.")
         fformat = value
