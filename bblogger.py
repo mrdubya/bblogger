@@ -119,14 +119,22 @@ class ConnectionStats(object):
     def __init__(self, modem, reporter):
         self._modem = modem
         self._reporter = reporter
+        self._duration = 24 # hours
+        self._interval = 15 # minutes
 
-    def report_stats_start(self):
+    def set_periods(self, duration, interval):
+        self._duration = duration
+        self._interval = interval
+
+    def log_stats(self):
         self._reporter.start(ConnectionStats.ALL_STATS)
-
-    def report_stats(self):
-        self._modem.read_stats()
-        self._reporter.log([self._modem[stat] for stat in
-                            ConnectionStats.ALL_STATS])
+        endtime = datetime.datetime.now() + \
+                datetime.timedelta(hours=self._duration)
+        while datetime.datetime.now() < endtime:
+            self._modem.read_stats()
+            self._reporter.log([self._modem[stat] for stat in
+                                ConnectionStats.ALL_STATS])
+            time.sleep(self._interval*60)
 
 
 class BroadBandModem(object):
@@ -276,17 +284,13 @@ for option, value in options:
 if len(pargs) > 0:
     usage("Unknown arguments given: - %s", " ".join(pargs))
 
-endtime = datetime.datetime.now() + datetime.timedelta(hours=duration)
-
 modem = Vigor130Modem()
 modem.get_login()
 
 logger = FFORMATS[fformat](outfile)
 
 cs = ConnectionStats(modem, logger)
-cs.report_stats_start()
-while datetime.datetime.now() < endtime:
-    cs.report_stats()
-    time.sleep(sleeptime*60)
+cs.set_periods(duration, sleeptime)
+cs.log_stats()
 
 # eof
