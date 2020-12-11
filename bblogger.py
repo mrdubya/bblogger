@@ -2,15 +2,15 @@
 
 """Broadband modem stats logger.
 
-usage: bblogger [-h] [-d hours] [-o dump|csv] [-t minutes]
+usage: bblogger [-h] [-d hours] [-f] [-o dump|csv] [-t minutes]
 
 -h  Display this help.
 -d  How long to log modem stats (default 24)
+-f  Log stats to daily log files
 -o  Output format (default dump)
 -t  Time between checks in minutes (default 15)
 """
 
-import copy
 import csv
 import datetime
 import getopt
@@ -121,20 +121,28 @@ class ConnectionStats(object):
         self._reporter = reporter
         self._duration = 24 # hours
         self._interval = 15 # minutes
+        self._perday = False
 
-    def set_periods(self, duration, interval):
+    def set_periods(self, duration, interval=15, log_perday=False):
         self._duration = duration
         self._interval = interval
+        self._perday = log_perday
 
     def log_stats(self):
-        self._reporter.start(ConnectionStats.ALL_STATS)
-        endtime = datetime.datetime.now() + \
-                datetime.timedelta(hours=self._duration)
-        while datetime.datetime.now() < endtime:
+        log_datetime = datetime.datetime.now()
+        log_day = log_datetime.day
+        self._reporter.start(log_datetime)
+        end_time = log_datetime + datetime.timedelta(hours=self._duration)
+        while log_datetime < end_time:
             self._modem.read_stats()
-            self._reporter.log([self._modem[stat] for stat in
-                                ConnectionStats.ALL_STATS])
+            if self._perday and log_datetime.day != log_day:
+                log_day = log_datetime.day
+                self._reporter.start(log_datetime)
+            self._reporter.log(log_datetime,
+                    [(stat, str(self._modem[stat])) for stat in
+                        ConnectionStats.ALL_STATS])
             time.sleep(self._interval*60)
+            log_datetime = datetime.datetime.now()
 
 
 class BroadBandModem(object):
@@ -205,43 +213,55 @@ class Vigor130Modem(BroadBandModem):
         self._connection.exit()
 
 
+def log_filename(log_datetime, extension='log'):
+    return "%s.%s" % (log_datetime.date(), extension)
+
+
 class StatsLogger(object):
 
-    def __init__(self, output):
-        self._output = output
+    def __init__(self, to_file):
+        self._to_file = to_file
+        self._output = None
+        self._new_logfile = True
 
-    def start(self, fields):
-        self._fields = copy.copy(fields)
+    def start(self, log_datetime, extension='log'):
+        if self._to_file:
+            if self._output:
+                self._output.close()
+            filename = log_filename(log_datetime, extension)
+            self._new_logfile = not os.path.exists(filename)
+            open_flags = 'w'
+            if not self._new_logfile:
+                open_flags = 'a'
+            self._output = open(filename, open_flags)
+        else:
+            self._output = sys.stdout
 
-    def _str_data(self, data):
-        return [str(d) for d in data]
-
-    def log_time(self):
-        return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-
-    def log(self, data):
-        self._output.write("Timestamp: %s\n" % self.log_time())
-        for field, data in zip(self._fields, self._str_data(data)):
-            self._output.write("%s: %s\n" % (field, data))
+    def log(self, log_datetime, data):
+        self._output.write("Timestamp: %s\n" %
+                log_datetime.strftime("%Y-%m-%d %H:%M"))
+        for field, value in data:
+            self._output.write("%s: %s\n" % (field, value))
         self._output.flush()
 
 
 class CSVStatsLogger(StatsLogger):
 
-    def __init__(self, csvfile):
-        self._csvfile = csvfile
-        self._csv = csv.writer(self._csvfile)
+    def start(self, log_datetime):
+        super().start(log_datetime, extension='csv')
+        self._csv = csv.writer(self._output)
 
-    def start(self, fields):
-        self._csv.writerow(["Timestamp"] + fields)
-
-    def log(self, data):
-        self._csv.writerow([self.log_time()] + self._str_data(data))
-        self._csvfile.flush()
+    def log(self, log_datetime, data):
+        if self._new_logfile:
+            self._csv.writerow(["Timestamp"] + [field for field, _ in data])
+            self._new_logfile = False
+        self._csv.writerow([log_datetime.isoformat(' ', 'seconds')] +
+                [value for _, value in data])
+        self._output.flush()
 
 
 try:
-    options, pargs = getopt.getopt(sys.argv[1:], "hd:o:t:")
+    options, pargs = getopt.getopt(sys.argv[1:], "hd:fo:t:")
 except getopt.GetoptError as err:
     usage(str(err))
 
@@ -251,7 +271,7 @@ FFORMATS = {
 }
 
 fformat = 'dump'
-outfile = sys.stdout
+to_file = False
 sleeptime = 15
 duration = 24
 
@@ -267,6 +287,9 @@ for option, value in options:
                 raise ValueError
         except ValueError:
             usage("Log duration must be integer value greater than 0.")
+
+    elif option == '-f':
+        to_file = True
 
     elif option == '-o':
         if value not in FFORMATS:
@@ -287,10 +310,10 @@ if len(pargs) > 0:
 modem = Vigor130Modem()
 modem.get_login()
 
-logger = FFORMATS[fformat](outfile)
+logger = FFORMATS[fformat](to_file)
 
 cs = ConnectionStats(modem, logger)
-cs.set_periods(duration, sleeptime)
+cs.set_periods(duration, sleeptime, to_file)
 cs.log_stats()
 
 # eof
