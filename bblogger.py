@@ -141,7 +141,7 @@ class ConnectionStats(object):
             self._reporter.log(log_datetime,
                     [(stat, str(self._modem[stat])) for stat in
                         ConnectionStats.ALL_STATS])
-            time.sleep(self._interval*60 - 0.1)
+            time.sleep(self._interval*60 - 0.5)
             log_datetime = datetime.datetime.now()
 
 
