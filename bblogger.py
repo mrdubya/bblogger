@@ -92,6 +92,8 @@ class ConnectionStats(object):
     US_ACTUAL = 'US Actual'
     US_ATTAINABLE = 'US Attainable'
     NE_SNR_MARGIN = 'NE SNR Margin'
+    NE_RCVD_CELLS = 'NE Rcvd Cells'
+    NE_XMITTED_CELLS = 'NE Xmitted Cells'
     NE_CRC_COUNT = 'NE CRC Count'
     NE_ES_COUNT = 'NE ES Count'
     FE_SNR_MARGIN = 'FE SNR Margin'
@@ -107,6 +109,8 @@ class ConnectionStats(object):
         DS_ACTUAL,
         DS_ATTAINABLE,
         NE_SNR_MARGIN,
+        NE_RCVD_CELLS,
+        NE_XMITTED_CELLS,
         NE_CRC_COUNT,
         NE_ES_COUNT,
         US_ACTUAL,
@@ -176,6 +180,8 @@ class Vigor130Modem(BroadBandModem):
         ConnectionStats.US_ACTUAL:     rb"US Actual Rate +: +(\d+)",
         ConnectionStats.US_ATTAINABLE: rb"US Attainable Rate +: +(\d+)",
         ConnectionStats.NE_SNR_MARGIN: rb"Cur SNR Margin +: +(\d+)",
+        ConnectionStats.NE_RCVD_CELLS: rb"NE Rcvd Cells +: +(\d+)",
+        ConnectionStats.NE_XMITTED_CELLS: rb"NE Xmitted Cells +: +(\d+)",
         ConnectionStats.NE_CRC_COUNT:  rb"NE CRC Count +: +(\d+)",
         ConnectionStats.NE_ES_COUNT:   rb"NE ES Count +: +(\d+)",
         ConnectionStats.FE_SNR_MARGIN: rb"Far SNR Margin +: +(\d+)",
