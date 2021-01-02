@@ -23,7 +23,7 @@ import time
 
 # Utility product information
 __product__ = 'Broadband modem stats logger'
-__copyright__ = 'Copyright 2020 Mike Williams. All rights reserved.'
+__copyright__ = 'Copyright 2020-2021 Mike Williams. All rights reserved.'
 version_info = (0, 1, 0, 'alpha', 0)
 __version__ = '%d.%d.%d' % version_info[:3]
 if version_info[3] != 'final':
@@ -133,6 +133,8 @@ class ConnectionStats(object):
         log_day = log_datetime.day
         self._reporter.start(log_datetime)
         end_time = log_datetime + datetime.timedelta(hours=self._duration)
+        print("Logging period ends: %s\n" %
+                end_time.isoformat(sep=' ', timespec='seconds'))
         while log_datetime < end_time:
             self._modem.read_stats()
             if self._perday and log_datetime.day != log_day:
@@ -143,6 +145,7 @@ class ConnectionStats(object):
                         ConnectionStats.ALL_STATS])
             time.sleep(self._interval*60 - 0.5)
             log_datetime = datetime.datetime.now()
+        print("... logging finished.\n")
 
 
 class BroadBandModem(object):
