@@ -89,13 +89,17 @@ class ConnectionStats(object):
     UPTIME = 'Uptime'
     DS_ACTUAL = 'DS Actual'
     DS_ATTAINABLE = 'DS Attainable'
+    DS_PSD = 'DS PSD'
     US_ACTUAL = 'US Actual'
     US_ATTAINABLE = 'US Attainable'
+    US_PSD = 'US PSD'
+    NE_ATTENUATION = 'NE Attenuation'
     NE_SNR_MARGIN = 'NE SNR Margin'
     NE_RCVD_CELLS = 'NE Rcvd Cells'
     NE_XMITTED_CELLS = 'NE Xmitted Cells'
     NE_CRC_COUNT = 'NE CRC Count'
     NE_ES_COUNT = 'NE ES Count'
+    FE_ATTENUATION = 'FE Attenuation'
     FE_SNR_MARGIN = 'FE SNR Margin'
     FE_CRC_COUNT = 'FE CRC Count'
     FE_ES_COUNT = 'FE ES Count'
@@ -108,6 +112,8 @@ class ConnectionStats(object):
         LINK_TIMES,
         DS_ACTUAL,
         DS_ATTAINABLE,
+        DS_PSD,
+        NE_ATTENUATION,
         NE_SNR_MARGIN,
         NE_RCVD_CELLS,
         NE_XMITTED_CELLS,
@@ -115,6 +121,8 @@ class ConnectionStats(object):
         NE_ES_COUNT,
         US_ACTUAL,
         US_ATTAINABLE,
+        US_PSD,
+        FE_ATTENUATION,
         FE_SNR_MARGIN,
         FE_CRC_COUNT,
         FE_ES_COUNT,
@@ -177,13 +185,17 @@ class Vigor130Modem(BroadBandModem):
     ADSL_STATS = {
         ConnectionStats.DS_ACTUAL:     rb"DS Actual Rate +: +(\d+)",
         ConnectionStats.DS_ATTAINABLE: rb"DS Attainable Rate +: +(\d+)",
+        ConnectionStats.DS_PSD:        rb"DS actual PSD +: +(\d+)\. *(\d+)",
         ConnectionStats.US_ACTUAL:     rb"US Actual Rate +: +(\d+)",
         ConnectionStats.US_ATTAINABLE: rb"US Attainable Rate +: +(\d+)",
+        ConnectionStats.US_PSD:        rb"US actual PSD +: +(\d+)\. *(\d+)",
+        ConnectionStats.NE_ATTENUATION: rb"NE Current Attenuation +: +(\d+)",
         ConnectionStats.NE_SNR_MARGIN: rb"Cur SNR Margin +: +(\d+)",
         ConnectionStats.NE_RCVD_CELLS: rb"NE Rcvd Cells +: +(\d+)",
         ConnectionStats.NE_XMITTED_CELLS: rb"NE Xmitted Cells +: +(\d+)",
         ConnectionStats.NE_CRC_COUNT:  rb"NE CRC Count +: +(\d+)",
         ConnectionStats.NE_ES_COUNT:   rb"NE ES Count +: +(\d+)",
+        ConnectionStats.FE_ATTENUATION: rb"Far Current Attenuation +: +(\d+)",
         ConnectionStats.FE_SNR_MARGIN: rb"Far SNR Margin +: +(\d+)",
         ConnectionStats.FE_CRC_COUNT:  rb"FE CRC Count +: +(\d+)",
         ConnectionStats.FE_ES_COUNT:   rb"FE  ES Count +: +(\d+)",
@@ -215,7 +227,12 @@ class Vigor130Modem(BroadBandModem):
         for stat, pattern in Vigor130Modem.ADSL_STATS.items():
             match = re.search(pattern, adsl)
             if match:
-                self._stats[stat] = int(match.group(1))
+                if stat == ConnectionStats.DS_PSD or \
+                        stat == ConnectionStats.US_PSD:
+                    self._stats[stat] = float(b"%s.%s" %
+                            (match.group(1), match.group(2)))
+                else:
+                    self._stats[stat] = int(match.group(1))
             else:
                 print("Did not find status: %s" % stat, file=sys.stderr)
 
