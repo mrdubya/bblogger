@@ -2,16 +2,16 @@
 
 """Broadband modem stats logger.
 
-usage: bblogger [-h] [-m address] [-u user] [-p password] [-d hours] [-f] [-o dump|csv] [-t minutes]
+usage: bblogger [-h] address] [-u user] [-p password] [-d hours] [-f] [-o dump|csv] [-t minutes] [modem]
 
 -h  Display this help.
 -d  How long to log modem stats (default 24)
 -f  Log stats to daily log files
--m  Modem network address
 -o  Output format (default dump)
 -p  Modem user password (NOT RECOMMENDED)
 -t  Time between checks in minutes (default 15)
 -u  User id on modem (default admin)
+modem Network address.
 """
 
 import csv
@@ -285,7 +285,7 @@ class CSVStatsLogger(StatsLogger):
 
 
 try:
-    options, pargs = getopt.getopt(sys.argv[1:], "hd:fm:o:p:t:u:")
+    options, pargs = getopt.getopt(sys.argv[1:], "hd:fo:p:t:u:")
 except getopt.GetoptError as err:
     usage(str(err))
 
@@ -298,7 +298,6 @@ fformat = 'dump'
 to_file = False
 sleeptime = 15
 duration = 24
-host = '192.168.1.1'
 user = 'admin'
 password = ''
 
@@ -317,9 +316,6 @@ for option, value in options:
 
     elif option == '-f':
         to_file = True
-
-    elif option == '-m':
-        host = value
 
     elif option == '-o':
         if value not in FFORMATS:
@@ -340,8 +336,12 @@ for option, value in options:
     elif option == '-u':
         user = value
 
-if len(pargs) > 0:
-    usage("Unknown arguments given: - %s", " ".join(pargs))
+if len(pargs) > 1:
+    usage("More than one modem address given.")
+
+host = '192.168.1.1'
+if len(pargs) == 1:
+    host = pargs[0]
 
 if not password:
     password = getpass.getpass()
