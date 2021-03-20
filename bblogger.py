@@ -2,13 +2,16 @@
 
 """Broadband modem stats logger.
 
-usage: bblogger [-h] [-d hours] [-f] [-o dump|csv] [-t minutes]
+usage: bblogger [-h] [-m address] [-u user] [-p password] [-d hours] [-f] [-o dump|csv] [-t minutes]
 
 -h  Display this help.
 -d  How long to log modem stats (default 24)
 -f  Log stats to daily log files
+-m  Modem network address
 -o  Output format (default dump)
+-p  Modem user password (NOT RECOMMENDED)
 -t  Time between checks in minutes (default 15)
+-u  User id on modem (default admin)
 """
 
 import csv
@@ -162,16 +165,11 @@ class ConnectionStats(object):
 
 class BroadBandModem(object):
 
-    def __init__(self):
-        self._host = '192.168.1.1'
-        self._user = 'admin'
-        self._password = 'admin'
+    def __init__(self, host, user, password):
+        self._host = host
+        self._user = user
+        self._password = password
         self._stats = {}
-
-    def get_login(self):
-        self._host = input("Modem address: ")
-        self._user = input("Account: ")
-        self._password = getpass.getpass()
 
     def __getitem__(self, stat):
         return self._stats.get(stat, "Unknown")
@@ -203,8 +201,8 @@ class Vigor130Modem(BroadBandModem):
         ConnectionStats.LINK_TIMES:    rb"Xdsl Link  Times +: +(\d+)"
     }
 
-    def __init__(self):
-        super(Vigor130Modem, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(Vigor130Modem, self).__init__(*args, **kwargs)
         self._connection = TelnetConnection()
         self._connection.set_login('Account:', 'Password: ')
         self._connection.set_prompt('> ')
@@ -287,7 +285,7 @@ class CSVStatsLogger(StatsLogger):
 
 
 try:
-    options, pargs = getopt.getopt(sys.argv[1:], "hd:fo:t:")
+    options, pargs = getopt.getopt(sys.argv[1:], "hd:fm:o:p:t:u:")
 except getopt.GetoptError as err:
     usage(str(err))
 
@@ -300,6 +298,9 @@ fformat = 'dump'
 to_file = False
 sleeptime = 15
 duration = 24
+host = '192.168.1.1'
+user = 'admin'
+password = ''
 
 for option, value in options:
     if option == '-h':
@@ -317,10 +318,16 @@ for option, value in options:
     elif option == '-f':
         to_file = True
 
+    elif option == '-m':
+        host = value
+
     elif option == '-o':
         if value not in FFORMATS:
             usage("Log format is not recognised.")
         fformat = value
+
+    elif option == '-p':
+        password = value
 
     elif option == '-t':
         try:
@@ -330,11 +337,16 @@ for option, value in options:
         except ValueError:
             usage("Time between checks must be integer value greater than 0.")
 
+    elif option == '-u':
+        user = value
+
 if len(pargs) > 0:
     usage("Unknown arguments given: - %s", " ".join(pargs))
 
-modem = Vigor130Modem()
-modem.get_login()
+if not password:
+    password = getpass.getpass()
+
+modem = Vigor130Modem(host, user, password)
 
 logger = FFORMATS[fformat](to_file)
 
