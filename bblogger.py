@@ -2,7 +2,7 @@
 
 """Broadband modem stats logger.
 
-usage: bblogger [-h] address] [-u user] [-p password] [-d hours] [-f] [-o dump|csv] [-t minutes] [modem]
+usage: bblogger [-h] [-u user] [-p password] [-d hours] [-f] [-o dump|csv] [-t minutes] [modem]
 
 -h  Display this help.
 -d  How long to log modem stats (default 24)
@@ -14,6 +14,7 @@ usage: bblogger [-h] address] [-u user] [-p password] [-d hours] [-f] [-o dump|c
 modem Network address.
 """
 
+import configparser
 import csv
 import datetime
 import getopt
@@ -289,17 +290,32 @@ try:
 except getopt.GetoptError as err:
     usage(str(err))
 
-FFORMATS = {
-    'dump': StatsLogger,
-    'csv': CSVStatsLogger
-}
+if len(pargs) > 1:
+    usage("More than one modem address given.")
 
-fformat = 'dump'
-to_file = False
-sleeptime = 15
-duration = 24
+host = '192.168.1.1'
 user = 'admin'
 password = ''
+duration = 24
+to_file = False
+fformat = 'dump'
+sleeptime = 15
+
+if len(pargs) == 1:
+    host = pargs[0]
+
+if os.path.exists('./bblogger.ini'):
+    config = configparser.ConfigParser()
+    config.read('./bblogger.ini')
+    if host in config.sections():
+        modem = config[host]
+        host = modem.get('host', host)
+        user = modem.get('user', user)
+        password = modem.get('password', password)
+        duration = modem.getint('duration', duration)
+        to_file = modem.getboolean('file', to_file)
+        fformat = modem.get('output', fformat)
+        sleeptime = modem.getint('time', sleeptime)
 
 for option, value in options:
     if option == '-h':
@@ -318,8 +334,6 @@ for option, value in options:
         to_file = True
 
     elif option == '-o':
-        if value not in FFORMATS:
-            usage("Log format is not recognised.")
         fformat = value
 
     elif option == '-p':
@@ -336,12 +350,13 @@ for option, value in options:
     elif option == '-u':
         user = value
 
-if len(pargs) > 1:
-    usage("More than one modem address given.")
+FFORMATS = {
+    'dump': StatsLogger,
+    'csv': CSVStatsLogger
+}
 
-host = '192.168.1.1'
-if len(pargs) == 1:
-    host = pargs[0]
+if fformat not in FFORMATS:
+    usage("Log format not recognised: %s" % fformat)
 
 if not password:
     password = getpass.getpass()

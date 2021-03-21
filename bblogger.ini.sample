@@ -1,0 +1,17 @@
+; Add sections for each modem that can be logged
+
+[modem1]
+; network address
+host=192.168.1.1
+; user id
+user=admin
+; password, but leave empty to always prompt
+password=
+; logging duration, hours
+duration=24
+; rotated log files
+file=no
+; log format, dump or csv
+output=dump
+; update interval, minutes
+time=15
