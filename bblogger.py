@@ -28,7 +28,7 @@ import time
 # Utility product information
 __product__ = 'Broadband modem stats logger'
 __copyright__ = 'Copyright 2020-2021 Mike Williams. All rights reserved.'
-version_info = (0, 1, 0, 'alpha', 0)
+version_info = (0, 2, 0, 'alpha', 0)
 __version__ = '%d.%d.%d' % version_info[:3]
 if version_info[3] != 'final':
     __version__ += ' %s.%d' % version_info[3:]
