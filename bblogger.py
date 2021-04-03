@@ -21,6 +21,7 @@ import getopt
 import getpass
 import os.path
 import re
+import socket
 import sys
 import telnetlib
 import time
@@ -349,6 +350,11 @@ for option, value in options:
 
     elif option == '-u':
         user = value
+
+try:
+    ip = socket.gethostbyname(host)
+except socket.gaierror:
+    usage("Cannot use modem address: %s" % host)
 
 FFORMATS = {
     'dump': StatsLogger,
