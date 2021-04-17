@@ -191,8 +191,8 @@ class Vigor130Modem(BroadBandModem):
         ConnectionStats.US_PSD:        rb"US actual PSD +: +(\d+)\. *(\d+)",
         ConnectionStats.NE_ATTENUATION: rb"NE Current Attenuation +: +(\d+)",
         ConnectionStats.NE_SNR_MARGIN: rb"Cur SNR Margin +: +(\d+)",
-        ConnectionStats.NE_RCVD_CELLS: rb"NE Rcvd Cells +: +(\d+)",
-        ConnectionStats.NE_XMITTED_CELLS: rb"NE Xmitted Cells +: +(\d+)",
+        ConnectionStats.NE_RCVD_CELLS: rb"NE Rcvd Cells +: +(-?\d+)",
+        ConnectionStats.NE_XMITTED_CELLS: rb"NE Xmitted Cells +: +(-?\d+)",
         ConnectionStats.NE_CRC_COUNT:  rb"NE CRC Count +: +(\d+)",
         ConnectionStats.NE_ES_COUNT:   rb"NE ES Count +: +(\d+)",
         ConnectionStats.FE_ATTENUATION: rb"Far Current Attenuation +: +(\d+)",
@@ -232,7 +232,10 @@ class Vigor130Modem(BroadBandModem):
                     self._stats[stat] = float(b"%s.%s" %
                             (match.group(1), match.group(2)))
                 else:
-                    self._stats[stat] = int(match.group(1))
+                    value = int(match.group(1))
+                    if value < 0:
+                        value += (1<<31) - 1
+                    self._stats[stat] = value
             else:
                 print("Did not find status: %s" % stat, file=sys.stderr)
 
