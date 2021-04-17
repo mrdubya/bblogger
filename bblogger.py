@@ -234,7 +234,7 @@ class Vigor130Modem(BroadBandModem):
                 else:
                     value = int(match.group(1))
                     if value < 0:
-                        value += (1<<31) - 1
+                        value += (1<<32)
                     self._stats[stat] = value
             else:
                 print("Did not find status: %s" % stat, file=sys.stderr)
