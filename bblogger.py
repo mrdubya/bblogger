@@ -2,9 +2,10 @@
 
 """Broadband modem stats logger.
 
-usage: bblogger [-h] [-u user] [-p password] [-d hours] [-f] [-o dump|csv] [-t minutes] [modem]
+usage: bblogger [-h] [-u user] [-p password] [-c adsl|vdsl] [-d hours] [-f] [-o dump|csv] [-t minutes] [modem]
 
 -h  Display this help.
+-c  Connection (default adsl)
 -d  How long to log modem stats (default 24)
 -f  Log stats to daily log files
 -o  Output format (default dump)
@@ -29,7 +30,7 @@ import time
 # Utility product information
 __product__ = 'Broadband modem stats logger'
 __copyright__ = 'Copyright 2020-2021 Mike Williams. All rights reserved.'
-version_info = (0, 2, 0, 'alpha', 0)
+version_info = (0, 3, 0, 'alpha', 0)
 __version__ = '%d.%d.%d' % version_info[:3]
 if version_info[3] != 'final':
     __version__ += ' %s.%d' % version_info[3:]
@@ -159,7 +160,8 @@ class ConnectionStats(object):
                 self._reporter.start(log_datetime)
             self._reporter.log(log_datetime,
                     [(stat, str(self._modem[stat])) for stat in
-                        ConnectionStats.ALL_STATS])
+                        ConnectionStats.ALL_STATS
+                        if self._modem.reports_stat(stat)])
             time.sleep(self._interval*60 - 0.5)
             log_datetime = datetime.datetime.now()
         print("... logging finished.\n")
@@ -167,10 +169,11 @@ class ConnectionStats(object):
 
 class BroadBandModem(object):
 
-    def __init__(self, host, user, password):
+    def __init__(self, host, user, password, connection):
         self._host = host
         self._user = user
         self._password = password
+        self._connection = connection
         self._stats = {}
 
     def __getitem__(self, stat):
@@ -182,37 +185,63 @@ class Vigor130Modem(BroadBandModem):
     STATUS_STATS = {
         ConnectionStats.UPTIME:        rb"System Uptime:(\d+):(\d+)"
     }
-    ADSL_STATS = {
-        ConnectionStats.DS_ACTUAL:     rb"DS Actual Rate +: +(\d+)",
-        ConnectionStats.DS_ATTAINABLE: rb"DS Attainable Rate +: +(\d+)",
-        ConnectionStats.DS_PSD:        rb"DS actual PSD +: +(\d+)\. *(\d+)",
-        ConnectionStats.US_ACTUAL:     rb"US Actual Rate +: +(\d+)",
-        ConnectionStats.US_ATTAINABLE: rb"US Attainable Rate +: +(\d+)",
-        ConnectionStats.US_PSD:        rb"US actual PSD +: +(\d+)\. *(\d+)",
-        ConnectionStats.NE_ATTENUATION: rb"NE Current Attenuation +: +(\d+)",
-        ConnectionStats.NE_SNR_MARGIN: rb"Cur SNR Margin +: +(\d+)",
-        ConnectionStats.NE_RCVD_CELLS: rb"NE Rcvd Cells +: +(-?\d+)",
-        ConnectionStats.NE_XMITTED_CELLS: rb"NE Xmitted Cells +: +(-?\d+)",
-        ConnectionStats.NE_CRC_COUNT:  rb"NE CRC Count +: +(\d+)",
-        ConnectionStats.NE_ES_COUNT:   rb"NE ES Count +: +(\d+)",
-        ConnectionStats.FE_ATTENUATION: rb"Far Current Attenuation +: +(\d+)",
-        ConnectionStats.FE_SNR_MARGIN: rb"Far SNR Margin +: +(\d+)",
-        ConnectionStats.FE_CRC_COUNT:  rb"FE CRC Count +: +(\d+)",
-        ConnectionStats.FE_ES_COUNT:   rb"FE  ES Count +: +(\d+)",
-        ConnectionStats.RESET_TIMES:   rb"Xdsl Reset Times +: +(\d+)",
-        ConnectionStats.LINK_TIMES:    rb"Xdsl Link  Times +: +(\d+)"
+    DSL_STATS = {
+        'adsl': {
+            'stats': {
+                ConnectionStats.DS_ACTUAL:     rb"DS Actual Rate +: +(\d+)",
+                ConnectionStats.DS_ATTAINABLE: rb"DS Attainable Rate +: +(\d+)",
+                ConnectionStats.DS_PSD:        rb"DS actual PSD +: +(\d+)\. *(\d+)",
+                ConnectionStats.US_ACTUAL:     rb"US Actual Rate +: +(\d+)",
+                ConnectionStats.US_ATTAINABLE: rb"US Attainable Rate +: +(\d+)",
+                ConnectionStats.US_PSD:        rb"US actual PSD +: +(\d+)\. *(\d+)",
+                ConnectionStats.NE_ATTENUATION: rb"NE Current Attenuation +: +(\d+)",
+                ConnectionStats.NE_SNR_MARGIN: rb"Cur SNR Margin +: +(\d+)",
+                ConnectionStats.NE_RCVD_CELLS: rb"NE Rcvd Cells +: +(-?\d+)",
+                ConnectionStats.NE_XMITTED_CELLS: rb"NE Xmitted Cells +: +(-?\d+)",
+                ConnectionStats.NE_CRC_COUNT:  rb"NE CRC Count +: +(\d+)",
+                ConnectionStats.NE_ES_COUNT:   rb"NE ES Count +: +(\d+)",
+                ConnectionStats.FE_ATTENUATION: rb"Far Current Attenuation +: +(\d+)",
+                ConnectionStats.FE_SNR_MARGIN: rb"Far SNR Margin +: +(\d+)",
+                ConnectionStats.FE_CRC_COUNT:  rb"FE CRC Count +: +(\d+)",
+                ConnectionStats.FE_ES_COUNT:   rb"FE  ES Count +: +(\d+)",
+                ConnectionStats.RESET_TIMES:   rb"Xdsl Reset Times +: +(\d+)",
+                ConnectionStats.LINK_TIMES:    rb"Xdsl Link  Times +: +(\d+)"
+            },
+            'status_cmd': "show adsl"
+        },
+        'vdsl': {
+            'stats': {
+                ConnectionStats.DS_ACTUAL:     rb"DS Actual Rate +: +(\d+)",
+                ConnectionStats.DS_ATTAINABLE: rb"DS Attainable Rate +: +(\d+)",
+                ConnectionStats.DS_PSD:        rb"DS actual PSD +: +(\d+)\. *(\d+)",
+                ConnectionStats.US_ACTUAL:     rb"US Actual Rate +: +(\d+)",
+                ConnectionStats.US_ATTAINABLE: rb"US Attainable Rate +: +(\d+)",
+                ConnectionStats.US_PSD:        rb"US actual PSD +: +(\d+)\. *(\d+)",
+                ConnectionStats.NE_ATTENUATION: rb"NE Current Attenuation +: +(\d+)",
+                ConnectionStats.NE_SNR_MARGIN: rb"Cur SNR Margin +: +(\d+)",
+                ConnectionStats.NE_CRC_COUNT:  rb"NE CRC Count +: +(\d+)",
+                ConnectionStats.NE_ES_COUNT:   rb"NE ES Count +: +(\d+)",
+                ConnectionStats.FE_ATTENUATION: rb"Far Current Attenuation +: +(\d+)",
+                ConnectionStats.FE_SNR_MARGIN: rb"Far SNR Margin +: +(\d+)",
+                ConnectionStats.FE_CRC_COUNT:  rb"FE CRC Count +: +(\d+)",
+                ConnectionStats.FE_ES_COUNT:   rb"FE  ES Count +: +(\d+)",
+                ConnectionStats.RESET_TIMES:   rb"Xdsl Reset Times +: +(\d+)",
+                ConnectionStats.LINK_TIMES:    rb"Xdsl Link  Times +: +(\d+)"
+            },
+            'status_cmd': "vdsl status"
+        }
     }
 
     def __init__(self, *args, **kwargs):
         super(Vigor130Modem, self).__init__(*args, **kwargs)
-        self._connection = TelnetConnection()
-        self._connection.set_login('Account:', 'Password: ')
-        self._connection.set_prompt('> ')
+        self._session = TelnetConnection()
+        self._session.set_login('Account:', 'Password: ')
+        self._session.set_prompt('> ')
 
     def read_stats(self):
-        self._connection.login(self._host, self._user, self._password)
+        self._session.login(self._host, self._user, self._password)
 
-        status = self._connection.read_command("show status")
+        status = self._session.read_command("show status")
 
         for stat, pattern in Vigor130Modem.STATUS_STATS.items():
             match = re.search(pattern, status)
@@ -223,9 +252,10 @@ class Vigor130Modem(BroadBandModem):
             else:
                 print("Did not find status: %s" % stat, file=sys.stderr)
 
-        adsl = self._connection.read_command("show adsl")
-        for stat, pattern in Vigor130Modem.ADSL_STATS.items():
-            match = re.search(pattern, adsl)
+        dsl_stats = Vigor130Modem.DSL_STATS[self._connection]
+        stats = self._session.read_command(dsl_stats['status_cmd'])
+        for stat, pattern in dsl_stats['stats'].items():
+            match = re.search(pattern, stats)
             if match:
                 if stat == ConnectionStats.DS_PSD or \
                         stat == ConnectionStats.US_PSD:
@@ -239,7 +269,11 @@ class Vigor130Modem(BroadBandModem):
             else:
                 print("Did not find status: %s" % stat, file=sys.stderr)
 
-        self._connection.exit()
+        self._session.exit()
+
+    def reports_stat(self, stat):
+        return stat in Vigor130Modem.DSL_STATS[self._connection]['stats'] or \
+                stat in Vigor130Modem.STATUS_STATS
 
 
 def log_filename(log_datetime, extension='log'):
@@ -290,7 +324,7 @@ class CSVStatsLogger(StatsLogger):
 
 
 try:
-    options, pargs = getopt.getopt(sys.argv[1:], "hd:fo:p:t:u:")
+    options, pargs = getopt.getopt(sys.argv[1:], "hc:d:fo:p:t:u:")
 except getopt.GetoptError as err:
     usage(str(err))
 
@@ -304,6 +338,7 @@ duration = 24
 to_file = False
 fformat = 'dump'
 sleeptime = 15
+connection = 'adsl'
 
 if len(pargs) == 1:
     host = pargs[0]
@@ -320,11 +355,15 @@ if os.path.exists('./bblogger.ini'):
         to_file = modem.getboolean('file', to_file)
         fformat = modem.get('output', fformat)
         sleeptime = modem.getint('time', sleeptime)
+        connection = modem.get('connection', connection)
 
 for option, value in options:
     if option == '-h':
         print('%s\n%s' % (__description__, __doc__))
         sys.exit()
+
+    elif option == '-c':
+        connection = value
 
     elif option == '-d':
         try:
@@ -367,10 +406,15 @@ FFORMATS = {
 if fformat not in FFORMATS:
     usage("Log format not recognised: %s" % fformat)
 
+DSLS = {'adsl', 'vdsl'}
+
+if connection not in DSLS:
+    usage("Connection technology not recognised: %s" % connection)
+
 if not password:
     password = getpass.getpass()
 
-modem = Vigor130Modem(host, user, password)
+modem = Vigor130Modem(host, user, password, connection)
 
 logger = FFORMATS[fformat](to_file)
 

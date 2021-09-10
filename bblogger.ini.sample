@@ -15,3 +15,5 @@ file=no
 output=dump
 ; update interval, minutes
 time=15
+; connection technology
+connection=adsl

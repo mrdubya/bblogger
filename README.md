@@ -16,13 +16,14 @@ be turned off.
 You can use the -h option to see the script options:
 ```console
 $ ./bblogger.py -h
-Broadband modem stats logger 0.2.0 alpha.0.
+Broadband modem stats logger 0.3.0 alpha.0.
 Copyright 2020-2021 Mike Williams. All rights reserved.
 Broadband modem stats logger.
 
-usage: bblogger [-h] [-u user] [-p password] [-d hours] [-f] [-o dump|csv] [-t minutes] [modem]
+usage: bblogger [-h] [-u user] [-p password] [-c adsl|vdsl] [-d hours] [-f] [-o dump|csv] [-t minutes] [modem]
 
 -h  Display this help.
+-c  Connection (default adsl)
 -d  How long to log modem stats (default 24)
 -f  Log stats to daily log files
 -o  Output format (default dump)
@@ -106,6 +107,9 @@ If you are using a different account to log into the modem then give the account
 name with the `-u` command line option.
 If you want to script invoking the logging script you can also provide the
 password using the `-p` command line option, although this is not recommended.
+
+If you want to log a FTTC/vdsl2 connection then use the -c command line option
+to specify a vdsl connection.
 
 INI Configuration File
 ======================
